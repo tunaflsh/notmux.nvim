@@ -20,19 +20,19 @@ there is only one (named) session.
 vim.pack:
 ```lua
 vim.pack.add({ 'https://github.com/tunaflsh/notmux.nvim' })
-require('notmux.nvim')
+require('notmux')
 ```
 lazy.nvim:
 ```lua
 {
     'tunaflsh/notmux.nvim',
     config = function()
-        require('notmux.nvim')
+        require('notmux')
     end
 }
 ```
 vim-plug:
 ```vim
 Plug 'tunaflsh/notmux.nvim'
-lua require('notmux.nvim')
+lua require('notmux')
 ```
