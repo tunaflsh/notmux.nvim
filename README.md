@@ -10,12 +10,13 @@ the tmux features that Neovim can already do:
 | detach  | :detach   |
 | attach  | :connect  |
 
-This plugin adds two user commands `:Detach` and `:Attach`.
+This plugin adds these user commands:
 - `:Detach [name]` detach the current session and (re)name it. You can omit the
 name if it already has one.
 - `:Attach [name]` attach to an existing session. The name can be omitted if
 there is only one (named) session.
 - `:Sessions` list active sessions.
+- `:KillSession {name}` kill a session remotely.
 
 ## Installation
 vim.pack:

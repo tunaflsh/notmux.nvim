@@ -45,22 +45,15 @@ local function clean_broken_symlinks()
 end
 
 
-vim.api.nvim_create_user_command(
-  'Sessions',
-  function()
-    for name in get_sessions() do
-      print(name)
-    end
-  end,
-  {
-    nargs = 0,
-    desc = 'List sessions'
-  }
-)
+local function complete_sessions(arglead, cmdline, cursorpos)
+  return get_sessions()
+  :map(function(name) return name end)
+  :filter(function(name) return vim.startswith(name, arglead) end)
+  :totable()
+end
 
 
-vim.api.nvim_create_user_command(
-  'Detach',
+vim.api.nvim_create_user_command('Detach',
   function(a)
     if 0 == #a.fargs and not vim.g.servername then
       _error('Missing name') return
@@ -85,18 +78,18 @@ vim.api.nvim_create_user_command(
   {
     nargs = '?',
     desc = 'name the socket and detach',
-  })
+  }
+)
 
 
-vim.api.nvim_create_user_command(
-  'Attach',
+vim.api.nvim_create_user_command('Attach',
   function(a)
     local sessions, msg, err = get_sessions()
     if not sessions then _error(msg) return end
 
     local name, session
     if #a.fargs == 1 then
-      name, session = sessions:find(function(name, real)
+      name, session = sessions:find(function(name)
         return name == a.args
       end)
       if not session then _error('No session '..a.args) return end
@@ -114,10 +107,36 @@ vim.api.nvim_create_user_command(
   {
     nargs = '?',
     desc = 'attach to a socket after it was :Detach',
-    complete = function(arglead, cmdline, cursorpos)
-      return get_sessions()
-      :map(function(name) return name end)
-      :filter(function(name) return vim.startswith(name, arglead) end)
-      :totable()
+    complete = complete_sessions
+  }
+)
+
+
+vim.api.nvim_create_user_command('Sessions',
+  function()
+    for name in get_sessions() do
+      print(name)
     end
-  })
+  end,
+  {
+    nargs = 0,
+    desc = 'List sessions'
+  }
+)
+
+
+vim.api.nvim_create_user_command('KillSession',
+  function(a)
+    local name, session = get_sessions():find(function(name)
+      return name == a.args
+    end)
+    if not session then _error('No session '..a.args) return end
+    local obj = vim.system({'nvim', '--server', session, '--remote-send', '<Cmd>qa!<CR>'}):wait()
+    if 0 < obj.code then _error(obj.stderr) end
+  end,
+  {
+    nargs = 1,
+    desc = 'Kill a session remotely',
+    complete = complete_sessions
+  }
+)
