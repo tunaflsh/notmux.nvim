@@ -36,7 +36,7 @@ local function get_sessions()
     if not suc then _error(msg) end
     return nil
   end)
-  :filter(function(name, real) return name end)
+  :filter(function(name) return name end)
 end
 
 
@@ -48,7 +48,7 @@ end
 vim.api.nvim_create_user_command(
   'Sessions',
   function()
-    for name, session in get_sessions() do
+    for name in get_sessions() do
       print(name)
     end
   end,
@@ -114,4 +114,10 @@ vim.api.nvim_create_user_command(
   {
     nargs = '?',
     desc = 'attach to a socket after it was :Detach',
+    complete = function(arglead, cmdline, cursorpos)
+      return get_sessions()
+      :map(function(name) return name end)
+      :filter(function(name) return vim.startswith(name, arglead) end)
+      :totable()
+    end
   })
