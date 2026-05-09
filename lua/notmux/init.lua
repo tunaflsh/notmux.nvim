@@ -5,7 +5,7 @@ end
 
 local cache = vim.fn.stdpath('cache')..'/notmux.nvim/'
 local suc, msg, err = vim.uv.fs_mkdir(cache, tonumber('755', 8))
-if not suc and err ~= 'EEXISTS' then _error('notmux: '..msg) return end
+if not suc and err ~= 'EEXIST' then _error('notmux: '..msg) return end
 
 
 local function get_sessions()
@@ -30,7 +30,7 @@ local function get_sessions()
       return name, real
     end
 
-    if 'ENOENT' == err then
+    if err == 'ENOENT' then
       suc, msg, err = vim.uv.fs_unlink(name)
     end
     if not suc then _error(msg) end
