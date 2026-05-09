@@ -1,4 +1,7 @@
 # notmux.nvim
+
+Inspired by [neovim-killed-tmux](https://github.com/anakin4747/neovim-killed-tmux).
+
 Neovim can do most of the features tmux can with the benefits of your configs
 that you have fine-tuned for years, and the plugin ecosystem. Here are some of
 the tmux features that Neovim can already do:
