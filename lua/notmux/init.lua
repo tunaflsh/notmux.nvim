@@ -46,6 +46,20 @@ end
 
 
 vim.api.nvim_create_user_command(
+  'Sessions',
+  function()
+    for name, session in get_sessions() do
+      print(name)
+    end
+  end,
+  {
+    nargs = 0,
+    desc = 'List sessions'
+  }
+)
+
+
+vim.api.nvim_create_user_command(
   'Detach',
   function(a)
     if 0 == #a.fargs and not vim.g.servername then
