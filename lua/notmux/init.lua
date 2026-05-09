@@ -24,18 +24,19 @@ local function get_sessions()
     local name, type = entry.name, entry.type
     if 'link' ~= type then return nil end
 
-    name = cache..name
-    real, msg, err = vim.uv.fs_realpath(name)
+    path = cache..name
+    real, msg, err = vim.uv.fs_realpath(path)
     if real and real:match('nvim.(%d+).(%d+)') then
       return name, real
     end
 
     if err == 'ENOENT' then
-      suc, msg, err = vim.uv.fs_unlink(name)
+      suc, msg, err = vim.uv.fs_unlink(path)
     end
     if not suc then _error(msg) end
     return nil
-  end):filter(function(name, real) return name end)
+  end)
+  :filter(function(name, real) return name end)
 end
 
 
@@ -79,21 +80,19 @@ vim.api.nvim_create_user_command(
     local sessions, msg, err = get_sessions()
     if not sessions then _error(msg) return end
 
-    local session
+    local name, session
     if #a.fargs == 1 then
-      _, session = sessions:find(function(name, real)
+      name, session = sessions:find(function(name, real)
         return name == a.args
       end)
       if not session then _error('No session '..a.args) return end
     else
-      local count = #sessions:totable()
-      if 0 == count then
+      name, session = sessions:next()
+      if not name then
         _error('No sessions') return
-      elseif 1 < count then
+      elseif sessions:next() then
         _error('More than one session. Please specify') return
       end
-
-      _, session = sessions:next()
     end
 
     vim.cmd.connect({ session, bang = not vim.g.servername })
