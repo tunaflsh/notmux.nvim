@@ -4,7 +4,7 @@ end
 
 
 local cache = vim.fn.stdpath('cache')..'/notmux.nvim/'
-local suc, msg, err = vim.uv.fs_mkdir(cache)
+local suc, msg, err = vim.uv.fs_mkdir(cache, tonumber('755', 8))
 if not suc and err ~= 'EEXISTS' then _error('notmux: '..msg) return end
 
 
