@@ -1,21 +1,68 @@
+local function _error(msg)
+  vim.notify(msg, vim.log.levels.ERROR)
+end
+
+
+local cache = vim.fn.stdpath('cache')..'/notmux.nvim/'
+local suc, msg, err = vim.uv.fs_mkdir(cache)
+if not suc and err ~= 'EEXISTS' then _error('notmux: '..msg) return end
+
+
+local function get_sessions()
+  local dir, msg, err = vim.uv.fs_opendir(cache)
+  if not dir then return nil, msg, err end
+
+  local files = {}
+  while true do
+    local entries = dir:readdir()
+    if not entries then break end
+    vim.list_extend(files, entries)
+  end
+  dir:closedir()
+
+  return vim.iter(files):map(function(entry)
+    local name, type = entry.name, entry.type
+    if 'link' ~= type then return nil end
+
+    name = cache..name
+    real, msg, err = vim.uv.fs_realpath(name)
+    if real and real:match('nvim.(%d+).(%d+)') then
+      return name, real
+    end
+
+    if 'ENOENT' == err then
+      suc, msg, err = vim.uv.fs_unlink(name)
+    end
+    if not suc then _error(msg) end
+    return nil
+  end):filter(function(name, real) return name end)
+end
+
+
+local function clean_broken_symlinks()
+  get_sessions():last()
+end
+
+
 vim.api.nvim_create_user_command(
   'Detach',
   function(a)
-    if #a.fargs == 0 and not vim.g.servername then
-      vim.notify('Missing name', vim.log.levels.ERROR)
-      return
-    end
+    if 0 == #a.fargs and not vim.g.servername then
+      _error('Missing name') return
+    elseif 1 == #a.fargs then
+      local name = cache..a.args
 
-    local servername = vim.fn.stdpath('run')..'/'..a.args
-    if #a.fargs == 1 and servername ~= vim.g.servername then
-      local obj = vim.system({'ln', '-s', vim.v.servername, servername}):wait()
-      if 0 < obj.code then
-        vim.notify(obj.stderr, vim.log.levels.ERROR)
-        return
+      if vim.g.servername then
+        suc, msg, err = vim.uv.fs_rename(vim.g.servername, name)
+      else
+        clean_broken_symlinks()
+        suc, msg, err = vim.uv.fs_symlink(vim.v.servername, name)
       end
-      vim.g.servername = servername
-      local gid = vim.api.nvim_create_augroup('vimrc-detach', { clear = true })
-      vim.api.nvim_create_autocmd('VimLeave', { command = '!rm '..servername, group = gid })
+      if not suc then _error(msg) return end
+
+      vim.g.servername = name
+      local gid = vim.api.nvim_create_augroup('notmux', { clear = true })
+      vim.api.nvim_create_autocmd('VimLeave', { command = '!rm '..name, group = gid })
     end
 
     vim.cmd.detach()
@@ -25,31 +72,31 @@ vim.api.nvim_create_user_command(
     desc = 'name the socket and detach',
   })
 
+
 vim.api.nvim_create_user_command(
   'Attach',
   function(a)
-    local run = vim.fn.stdpath('run')
+    local sessions, msg, err = get_sessions()
+    if not sessions then _error(msg) return end
 
+    local session
     if #a.fargs == 1 then
-      local servername = vim.uv.fs_realpath(run..'/'..a.args)
-      if servername:match('nvim.(%d+).(%d+)') then
-        vim.cmd.connect({ servername, bang = not vim.g.servername })
+      _, session = sessions:find(function(name, real)
+        return name == a.args
+      end)
+      if not session then _error('No session '..a.args) return end
+    else
+      local count = #sessions:totable()
+      if 0 == count then
+        _error('No sessions') return
+      elseif 1 < count then
+        _error('More than one session. Please specify') return
       end
+
+      _, session = sessions:next()
     end
 
-    local scanner = vim.uv.fs_scandir(run)
-    while scanner do
-      local name, type = vim.uv.fs_scandir_next(scanner)
-      if not name then break end
-      if type == 'link' then
-        local servername = vim.uv.fs_realpath(run..'/'..name)
-        if servername:match('nvim.(%d+).(%d+)') then
-          vim.cmd.connect({ servername, bang = not vim.g.servername })
-        end
-      end
-    end
-
-    vim.notify('No socket to attach to', vim.log.levels.ERROR)
+    vim.cmd.connect({ session, bang = not vim.g.servername })
   end,
   {
     nargs = '?',
