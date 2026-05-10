@@ -22,12 +22,17 @@ there is only one (named) session.
 - `:KillSession {name}` kill a session remotely.
 
 ## Installation
-vim.pack:
+### vim.pack
 ```lua
 vim.pack.add({ 'https://github.com/tunaflsh/notmux.nvim' })
 require('notmux')
 ```
-lazy.nvim:
+Or clone from Codeberg
+```lua
+vim.pack.add({ 'https://codeberg.org/tunaflsh/notmux.nvim' })
+require('notmux')
+```
+### lazy.nvim
 ```lua
 {
     'tunaflsh/notmux.nvim',
@@ -36,7 +41,7 @@ lazy.nvim:
     end
 }
 ```
-vim-plug:
+### vim-plug
 ```vim
 Plug 'tunaflsh/notmux.nvim'
 lua require('notmux')
